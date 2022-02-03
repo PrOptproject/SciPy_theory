@@ -1,3 +1,7 @@
+import math
+import scipy.optimize
+import numpy as np
+
 def to_date(lin):
     day = lin[0]+lin[1]
     month = lin[3]+lin[4]
@@ -5,15 +9,15 @@ def to_date(lin):
     return year + month + day
 
 class product:
-    params = [1,2]
+    params = [-1,-1]
     percent = 0
     product_id = 0
     store_id = 0
     product_number = 0
     last_price = 0
-    min_price = 0
+    min_price = -1
     purchase_price = 0
-    max_price = 0
+    max_price = -1
     def percentCounter(self):
         self.percent = self.purchase_price / 100.0;
     def minPriceCounter(self):
@@ -80,5 +84,33 @@ for i in d.keys():
     d[i].maxPriceCounter()
     #d[i].min_price = max(d[i].min_price(),abs((d[i].product_number/7-d[i].params[1])/d[i].params[0]))
 
+#таблица формул
+
+f = open('third1.txt','r')
+a = f.readlines()
+res=[]
+for i in range(1,len(a)):
+    s=a[i]
+    s = list(s.split(','))
+    s[2]=int(s[2])*100 + 1 + int(s[3])
+    d[s[2]].params=[float(s[0]),float(s[1])]
+
+can_opt = []
 for i in d.keys():
-    print(d[i].product_id)
+    if(d[i].min_price != -1 and d[i].max_price != -1 and d[i].params != [-1,-1]):
+        can_opt.append(i);
+def val(x,pr_id):
+    return d[pr_id].params[0] + math.log(x) * d[pr_id].params[1]
+
+def f(*args):
+    res=0
+    for i in (len(can_opt)):
+        res +=val(args[i],can_opt[i]) * args[i]
+    return -res
+
+x0 = []
+bounds=[]
+for i in can_opt:
+    x0.append((d[i].min_price+d[i].max_price)//2)
+    bounds.append(scipy.optimize.Bounds(d[i].min_price,d[i].max_price))
+max_x = scipy.optimize.minimize(lambda x: f, x0)
