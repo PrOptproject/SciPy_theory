@@ -2,7 +2,6 @@ import math
 import scipy.optimize
 import numpy as np
 
-fil = open('second_model_result.txt', 'w')
 def to_date(lin):
     day = lin[0] + lin[1]
     month = lin[3] + lin[4]
@@ -29,6 +28,31 @@ class product:
 
     def maxPriceCounter(self):
         self.max_price = min(self.last_price + 50 * self.percent, self.purchase_price * 2)
+
+type_of_model = ''
+model_file = ''
+output_file = ''
+type_of_optimization = ''
+bound_mar_rev = 0
+
+def getInfo():
+    global type_of_model
+    type_of_model = input("Print model type: ")
+    global model_file
+    model_file = input("Print model file: ")
+    global output_file
+    output_file = input("Print output file: ")
+    global type_of_optimization
+    type_of_optimization = input("Print  type of optimization: ")
+    global bound_mar_rev
+    if(type_of_optimization == 'revenue'):
+        bound_mar_rev = float(input("Print margin bounds: "))
+    if (type_of_optimization == 'margin'):
+        bound_mar_rev = float(input("Print revenue bounds: "))
+
+getInfo()
+fil = open(output_file, 'w')
+
 
 
 d = dict()
@@ -90,7 +114,7 @@ for i in d.keys():
 
 # таблица формул
 
-f = open('third1.txt', 'r')
+f = open(model_file, 'r')
 a = f.readlines()
 res = []
 for i in range(1, len(a)):
@@ -105,25 +129,46 @@ for i in d.keys():
         can_opt.append(i);
 
 def val(x, pr_id):
-    if(x<=0):
-        return -1e9
-    mlog = -1e18
-    if(x>=1):
-        mlog = math.log10(x)
-    return max(0, d[pr_id].params[0] + mlog * d[pr_id].params[1])
+    if(type_of_model == 'linear'):
+        m = -1e18
+        if (x >= 0):
+            m = x
+        return max(0, d[pr_id].params[0] + m * d[pr_id].params[1])
+
+    if(type_of_model == 'log10'):
+        if (x <= 0):
+            return -1e9
+        mlog = -1e18
+        if (x >= 1):
+            mlog = math.log10(x)
+        return max(0, d[pr_id].params[0] + mlog * d[pr_id].params[1])
+
+    if (type_of_model == 'loge'):
+        if (x <= 0):
+            return -1e9
+        mlog = -1e18
+        if (x >= 1):
+            mlog = math.log(x)
+        return max(0, d[pr_id].params[0] + mlog * d[pr_id].params[1])
 
 
-def f(x):
+def revenue(x):
+    if (type_of_optimization == 'revenue'):
+        if (margin(x) > bound_mar_rev):
+            return 1e9
     res = 0
     for i in range (len(can_opt)):
         res += val(x[i], can_opt[i]) * x[i]
     return -res
 
 def margin(x):
+    if(type_of_optimization == 'margin'):
+        if(revenue(x) > bound_mar_rev):
+            return 1e9
     res = 0
     for i in range (len(can_opt)):
         res += val(x[i], can_opt[i]) * (x[i]-d[can_opt[i]].purchase_price)
-    return res
+    return -res
 
 x0 = []
 x = []
@@ -136,15 +181,20 @@ for i in can_opt:
     boundss = boundss + ((d[i].min_price, d[i].max_price), )
 x0 = np.array(x0)
 x = np.array(x)
-max_x = scipy.optimize.minimize(f, x0, bounds=boundss)
 
-fil.write("base revenue: " + str(-f(x)) + "\n")
-fil.write("base margin: " + str(margin(x)) + "\n")
+if(type_of_optimization == 'revenue'):
+    max_x = scipy.optimize.minimize(revenue, x0, bounds=boundss)
+
+if(type_of_optimization == 'margin'):
+    max_x = scipy.optimize.minimize(margin, x0, bounds=boundss)
+
+fil.write("base revenue: " + str(-revenue(x)) + "\n")
+fil.write("base margin: " + str(-margin(x)) + "\n")
 new_x = max_x.x
 for i in range(len(can_opt)):
     if(abs(new_x[i]-d[can_opt[i]].last_price) < d[can_opt[i]].percent):
         new_x[i]=d[can_opt[i]].last_price
-fil.write("opt revenue: " + str(-f(new_x)) + "\n")
-fil.write("opt margin: " + str(margin(new_x)) + "\n")
+fil.write("opt revenue: " + str(-revenue(new_x)) + "\n")
+fil.write("opt margin: " + str(-margin(new_x)) + "\n")
 for i in range(len(can_opt)):
     fil.write(str(d[can_opt[i]].product_id) + " " + str(d[can_opt[i]].store_id) + " " + str(new_x[i]) + "\n")
