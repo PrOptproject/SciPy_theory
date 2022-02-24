@@ -154,7 +154,7 @@ def val(x, pr_id):
 
 def revenue(x):
     if (type_of_optimization == 'revenue'):
-        if (margin(x) > bound_mar_rev):
+        if (-margin(x) > bound_mar_rev):
             return 1e9
     res = 0
     for i in range (len(can_opt)):
@@ -163,7 +163,7 @@ def revenue(x):
 
 def margin(x):
     if(type_of_optimization == 'margin'):
-        if(revenue(x) > bound_mar_rev):
+        if(-revenue(x) > bound_mar_rev):
             return 1e9
     res = 0
     for i in range (len(can_opt)):
