@@ -68,9 +68,6 @@ products_dict = dict()
 f = open('COSTS.txt', 'r')
 a = f.readlines()
 names = dict()
-firststring = list(a[0].split('"'))
-for i in range(len(firststring)):
-    names[firststring[i]] = i;
 for i in range(1, len(a)):
     s = a[i]
     s = list(s.split('"'))
